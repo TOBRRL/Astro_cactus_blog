@@ -1,34 +1,59 @@
 ---
 // src/components/CRTOverlay.astro
 ---
-<div class="crt-wrapper" aria-hidden="true">
-  {/* 手动生成 250 条线，覆盖大部分屏幕高度 */}
-  {Array.from({ length: 250 }).map((_, i) => (
-    <div class="line" style={`top: ${i * 4}px`}></div>
-  ))}
+<div id="crt-overlay" class="crt-scrolling-wrapper" aria-hidden="true">
+	<div class="crt-lines"></div>
 </div>
 
+<script>
+	const overlay = document.getElementById("crt-overlay");
+	const updateCRT = () => {
+		const isOff = localStorage.getItem("crt-mode") === "off";
+		if (overlay) {
+			overlay.style.opacity = isOff ? "0" : "1";
+			overlay.style.visibility = isOff ? "hidden" : "visible";
+		}
+	};
+	updateCRT();
+	window.addEventListener("crt-toggle", updateCRT);
+	document.addEventListener("astro:after-swap", updateCRT);
+</script>
+
 <style is:global>
-  .crt-wrapper {
-    position: fixed !important;
-    inset: 0 !important;
-    z-index: 999999 !important;
-    pointer-events: none !important;
-    overflow: hidden !important;
-  }
+	/* 外层容器：负责开关和定位 */
+	.crt-scrolling-wrapper {
+		position: fixed !important;
+		inset: 0 !important;
+		z-index: 999999 !important;
+		pointer-events: none !important;
+		overflow: hidden !important;
+		transition: opacity 0.3s ease;
+	}
 
-  .line {
-    position: absolute !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 1px !important;
-    background-color: rgba(0, 255, 0, 0.15) !important;
-    /* 这里的动画只负责位移 4px，绝对不会产生幽灵方块 */
-    animation: line-move 0.5s linear infinite !important;
-  }
+	/* 内层线条：负责真正的物理滚动 */
+	.crt-lines {
+		position: absolute;
+		top: -4px; /* 向上溢出 4px 留出移动空间 */
+		left: 0;
+		width: 100%;
+		height: calc(100% + 4px);
+		
+		background: repeating-linear-gradient(
+			0deg,
+			rgba(0, 255, 0, 0.12) 0px,
+			rgba(0, 255, 0, 0.12) 1px,
+			transparent 1px,
+			transparent 4px
+		) !important;
+		background-size: 100% 4px !important;
 
-  @keyframes line-move {
-    from { transform: translateY(0); }
-    to { transform: translateY(4px); }
-  }
+		/* 核心：使用 transform 强制 GPU 渲染动画 */
+		animation: crt-physical-scroll 0.3s linear infinite !important;
+		will-change: transform;
+	}
+
+	@keyframes crt-physical-scroll {
+		from { transform: translateY(0); }
+		to { transform: translateY(4px); }
+	}
 </style>

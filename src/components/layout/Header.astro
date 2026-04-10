@@ -80,7 +80,6 @@ import { siteConfig } from "../../site.config";
 			<svg
 				aria-hidden="true"
 				class="text-accent absolute start-1/2 top-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2 scale-0 opacity-0 transition-all group-aria-expanded:scale-100 group-aria-expanded:opacity-100"
-				class="text-accent"
 				fill="none"
 				focusable="false"
 				id="cross-svg"
@@ -98,6 +97,7 @@ import { siteConfig } from "../../site.config";
 <script>
 	import { toggleClass } from "@/utils/domElement";
 
+	// 1. 原有的手机菜单逻辑
 	class MobileNavBtn extends HTMLElement {
 		#menuOpen: boolean = false;
 
@@ -114,4 +114,52 @@ import { siteConfig } from "../../site.config";
 	}
 
 	customElements.define("mobile-button", MobileNavBtn);
+
+	// 2. 长按 ThemeToggle 控制 CRT 开关逻辑
+	const themeToggleEl = document.querySelector("theme-toggle");
+	let pressTimer: ReturnType<typeof setTimeout>;
+	let isLongPress = false;
+
+	if (themeToggleEl) {
+		const startPress = () => {
+			isLongPress = false;
+			// 600ms 判定为长按
+			pressTimer = setTimeout(() => {
+				isLongPress = true;
+				// 执行 CRT 切换逻辑
+				const isOff = localStorage.getItem("crt-mode") === "off";
+				localStorage.setItem("crt-mode", isOff ? "on" : "off");
+				window.dispatchEvent(new Event("crt-toggle"));
+				
+				// 震动反馈 (支持的设备)
+				if ("vibrate" in navigator) navigator.vibrate(50);
+				
+				// 视觉反馈：闪烁一下提示长按生效
+				const btn = themeToggleEl.querySelector('button');
+				if (btn) {
+					btn.style.filter = "drop-shadow(0 0 8px #00ff00) brightness(1.5)";
+					setTimeout(() => btn.style.filter = "", 400);
+				}
+			}, 600);
+		};
+
+		const endPress = () => {
+			clearTimeout(pressTimer);
+		};
+
+		// 绑定各种压感事件
+		themeToggleEl.addEventListener("mousedown", startPress);
+		themeToggleEl.addEventListener("touchstart", startPress, { passive: true });
+		themeToggleEl.addEventListener("mouseup", endPress);
+		themeToggleEl.addEventListener("touchend", endPress);
+		themeToggleEl.addEventListener("mouseleave", endPress);
+
+		// 拦截点击事件：如果是长按触发的，就不允许切换日夜模式
+		themeToggleEl.addEventListener("click", (e) => {
+			if (isLongPress) {
+				e.preventDefault();
+				e.stopImmediatePropagation();
+			}
+		}, { capture: true });
+	}
 </script>
