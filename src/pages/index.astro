@@ -1,84 +1,213 @@
 ---
-import { type CollectionEntry, getCollection } from "astro:content";
-import PostPreview from "@/components/blog/PostPreview.astro";
-import Note from "@/components/note/Note.astro";
-import SocialList from "@/components/SocialList.astro";
-import { getAllPosts } from "@/data/post";
 import PageLayout from "@/layouts/Base.astro";
-import { collectionDateSort } from "@/utils/date";
-
-// Posts
-const MAX_POSTS = 10;
-const allPosts = await getAllPosts();
-const allPostsByDate = allPosts.sort(collectionDateSort) as CollectionEntry<"post">[];
-const latestPosts = allPostsByDate.slice(0, MAX_POSTS);
-
-// Pinned Posts, set to a max of 3;
-const MAX_PINNED_POSTS = 3;
-const pinnedPosts = allPostsByDate
-	.values()
-	.filter((p) => p.data.pinned)
-	.take(MAX_PINNED_POSTS)
-	.toArray();
-
-// Notes, set to a max of 5
-const MAX_NOTES = 5;
-const allNotes = await getCollection("note");
-const latestNotes = allNotes
-	.sort(collectionDateSort)
-	.slice(0, MAX_NOTES) as CollectionEntry<"note">[];
+const title = "ACCIRE | TERMINAL";
 ---
 
-<PageLayout meta={{ title: "Home" }}>
-	<section>
-		<h1 class="title mb-12">Hello World!</h1>
-		<p class="mb-4">
-			Hi, I’m a theme for Astro, a simple starter that you can use to create your website or blog.
-			If you want to know more about how you can customise me, add more posts, and make it your own,
-			click on the GitHub icon link below and it will take you to my repo.
-		</p>
-		<SocialList />
-	</section>
-	{
-		pinnedPosts.length > 0 && (
-			<section class="mt-16">
-				<h2 class="title mb-6 text-xl">Pinned Posts</h2>
-				<ul class="space-y-4" role="list">
-					{pinnedPosts.map((p) => (
-						<li class="grid gap-1 sm:grid-cols-[auto_1fr]">
-							<PostPreview post={p} />
-						</li>
-					))}
-				</ul>
-			</section>
-		)
-	}
-	<section class="mt-16">
-		<h2 class="title text-accent mb-6 text-xl"><a href="/posts/">Posts</a></h2>
-		<ul class="space-y-4" role="list">
-			{
-				latestPosts.map((p) => (
-					<li class="grid gap-1 sm:grid-cols-[auto_1fr]">
-						<PostPreview post={p} />
-					</li>
-				))
-			}
-		</ul>
-	</section>
-	{
-		latestNotes.length > 0 && (
-			<section class="mt-16">
-				<h2 class="title text-accent mb-6 text-xl">
-					<a href="/notes/">Notes</a>
-				</h2>
-				<ul class="space-y-6" role="list">
-					{latestNotes.map((note) => (
-						<li>
-							<Note note={note} as="h3" isPreview />
-						</li>
-					))}
-				</ul>
-			</section>
-		)
-	}
+<PageLayout meta={{ title }}>
+	<div class="terminal-env">
+		<canvas id="bg-canvas"></canvas>
+		
+		<div class="adaptive-layout">
+			<div class="visual-core">
+				<canvas id="star-canvas"></canvas>
+			</div>
+
+			<div class="interaction-zone">
+				<div class="glass-card">
+					<div class="glass-blur"></div>
+					<div class="card-content">
+						<header class="card-header">
+							<span class="id">ACCIRE_SYSTEM</span>
+							<span class="status pulse">CONNECTED</span>
+						</header>
+						
+						<div class="main-manifesto">
+							<h1 class="cn-title">星轨不璇</h1>
+							<p class="en-sub">STELLAR ORBITALS: STATIC.</p>
+						</div>
+						
+						<div class="divider"></div>
+						
+						<a href="/posts" class="boot-link">
+							<span class="btn-text">I N I T I A L I Z E</span>
+							<div class="scan-line"></div>
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<footer class="system-footer">
+			<div class="f-item">COORD: 104.06 / 30.67</div>
+			<div id="clock" class="f-item">00:00:00</div>
+			<div class="f-item">SYNC_STABLE</div>
+		</footer>
+	</div>
 </PageLayout>
+
+<script>
+	const bgCanvas = document.getElementById('bg-canvas') as HTMLCanvasElement;
+	const starCanvas = document.getElementById('star-canvas') as HTMLCanvasElement;
+	const bgCtx = bgCanvas.getContext('2d')!;
+	const starCtx = starCanvas.getContext('2d')!;
+	let width, height;
+
+	function noise(x, y, t) {
+		return Math.sin(x * 0.01 + t) * Math.cos(y * 0.01 - t * 0.7);
+	}
+
+	function init() {
+		width = window.innerWidth;
+		height = window.innerHeight;
+		bgCanvas.width = width;
+		bgCanvas.height = height;
+		starCanvas.width = starCanvas.parentElement.clientWidth;
+		starCanvas.height = starCanvas.parentElement.clientHeight;
+	}
+
+	function draw(time) {
+		const t = time * 0.0003;
+		bgCtx.fillStyle = "rgba(5, 6, 8, 0.25)";
+		bgCtx.fillRect(0, 0, width, height);
+		bgCtx.fillStyle = "rgba(100, 160, 170, 0.2)";
+		const bgSpacing = 40;
+		for (let x = bgSpacing; x < width; x += bgSpacing) {
+			for (let y = bgSpacing; y < height; y += bgSpacing) {
+				const n = noise(x * 0.08, y * 0.08, t * 0.8);
+				bgCtx.beginPath();
+				bgCtx.arc(x + Math.sin(x+t)*10, y + Math.cos(y+t)*10, (n + 1) * 0.6, 0, Math.PI * 2);
+				bgCtx.fill();
+			}
+		}
+
+		starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+		const cX = starCanvas.width / 2;
+		const cY = starCanvas.height / 2;
+		const dots = 900;
+		const radius = Math.min(starCanvas.width, starCanvas.height) * 0.35;
+		starCtx.fillStyle = "rgba(0, 255, 255, 0.85)";
+		
+		for (let i = 0; i < dots; i++) {
+			const angle = (i / dots) * Math.PI * 2;
+			const pX = cX + Math.cos(angle) * radius;
+			const pY = cY + Math.sin(angle) * radius;
+			const vNoise = noise(pX * 0.05, pY * 0.05, t * 1.5);
+			const oX = Math.cos(angle + vNoise) * vNoise * 40;
+			const oY = Math.sin(angle - vNoise) * vNoise * 40;
+			starCtx.beginPath();
+			starCtx.arc(pX + oX, pY + oY, (1.2 + vNoise) * 1.3, 0, Math.PI * 2);
+			starCtx.fill();
+		}
+		requestAnimationFrame(draw);
+	}
+
+	window.addEventListener('resize', init);
+	init();
+	draw(0);
+
+	setInterval(() => {
+		const clock = document.getElementById('clock');
+		if (clock) clock.innerText = new Date().toLocaleTimeString('en-GB');
+	}, 1000);
+</script>
+
+<style is:global>
+	#main-header, footer { display: none !important; }
+	* { user-select: none !important; -webkit-user-select: none; }
+
+	.terminal-env {
+		position: fixed; inset: 0;
+		background: #050608;
+		color: #e2e8f0;
+		font-family: "PingFang SC", "Microsoft YaHei", monospace;
+		z-index: 9999; overflow: hidden;
+	}
+
+	#bg-canvas { position: absolute; inset: 0; z-index: 1; }
+
+	.adaptive-layout {
+		position: relative; z-index: 10;
+		width: 100%; height: 100%;
+		display: flex; flex-direction: row;
+	}
+
+	.visual-core { flex: 1.2; height: 100%; display: flex; align-items: center; justify-content: center; }
+	.interaction-zone { flex: 1; height: 100%; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+
+	.glass-card {
+		position: relative; width: 100%; max-width: 420px;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.glass-blur {
+		position: absolute; inset: 0;
+		background: rgba(0, 10, 20, 0.8);
+		backdrop-filter: blur(25px) saturate(120%);
+		-webkit-backdrop-filter: blur(25px) saturate(120%);
+	}
+
+	.card-content { position: relative; z-index: 2; padding: 4.5rem 3rem; }
+	
+	.card-header { display: flex; justify-content: space-between; font-size: 9px; opacity: 0.25; letter-spacing: 0.3em; margin-bottom: 3.5rem; font-family: monospace; }
+	.status { color: #00ffcc; }
+
+	.cn-title {
+		font-size: 2.4rem;
+		font-weight: 200;
+		letter-spacing: 0.6em;
+		color: #fff;
+		margin-bottom: 0.8rem;
+		padding-left: 0.6em;
+	}
+	.en-sub {
+		font-size: 9px;
+		opacity: 0.2;
+		letter-spacing: 0.4em;
+		font-family: monospace;
+	}
+
+	.divider { width: 30px; height: 1px; background: rgba(0, 255, 204, 0.4); margin: 3rem 0; }
+
+	.boot-link {
+		position: relative; display: block;
+		padding: 1.2rem; border: 1px solid rgba(0, 255, 204, 0.4);
+		color: #00ffcc; text-decoration: none; text-align: center;
+		transition: all 0.3s ease;
+		background: rgba(0, 255, 204, 0.02); overflow: hidden;
+	}
+
+	.btn-text { font-size: 11px; letter-spacing: 0.6em; padding-left: 0.6em; opacity: 0.8; font-family: monospace; }
+
+	.boot-link:hover {
+		background: #00ffcc; color: #000;
+		box-shadow: 0 0 30px rgba(0, 255, 204, 0.5);
+		border-color: #00ffcc;
+	}
+	.boot-link:hover .btn-text { opacity: 1; font-weight: 700; }
+
+	.scan-line {
+		position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+		background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+		animation: scan 4s infinite linear;
+	}
+
+	@keyframes scan { 100% { left: 100%; } }
+
+	.system-footer {
+		position: absolute; bottom: 0; width: 100%; z-index: 20;
+		display: flex; justify-content: space-between;
+		padding: 1.5rem 3rem; font-size: 8px; opacity: 0.2; font-family: monospace;
+	}
+
+	@media (max-width: 768px) {
+		.adaptive-layout { flex-direction: column; }
+		.visual-core { flex: 1; min-height: 40vh; }
+		.interaction-zone { flex: 1.2; padding: 1.5rem; align-items: flex-start; }
+		.cn-title { font-size: 2rem; letter-spacing: 0.4em; }
+		.f-item:not(#clock) { display: none; }
+		.system-footer { justify-content: center; }
+	}
+
+	.pulse { animation: blink 3s infinite; }
+	@keyframes blink { 50% { opacity: 0.1; } }
+</style>
