@@ -214,8 +214,47 @@ const title = "ACCIRE | SYSTEM_V0.1";
 	#fossil-gl { width: 100%; height: 100%; display: block; }
 	
 	.logo-layer { position: absolute; top: 1.8rem; left: 1.8rem; pointer-events: none; z-index: 5; }
-	.tag { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; letter-spacing: 0.6em; font-weight: 800; color: #fff; }
-	.sub { color: #00FFC3; font-size: 0.8rem; letter-spacing: 0.2em; margin-top: 0.3rem; }
+	/* 1. 主标：默认状态 */
+.tag {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 0.6em;
+    font-weight: 800;
+    color: #fff;
+    white-space: nowrap;  /* 禁止换行 */
+    overflow: hidden;     /* 溢出隐藏 */
+    display: inline-block;
+}
+
+/* 2. 副标：默认状态 */
+.sub {
+    font-family: 'Share Tech Mono', monospace;
+    color: #00FFC3;
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    margin-top: 0.3rem;
+    white-space: nowrap;  /* 禁止换行 */
+    overflow: hidden;     /* 溢出隐藏 */
+    display: block;
+}
+
+/* --- 手机端适配：通过限制宽度实现字符裁剪 --- */
+@media (max-width: 768px) {
+    /* 宽度只够显示第一个字母 'A' */
+    .tag {
+        width: 1.2rem; 
+    }
+    
+    /* 宽度只够显示 'CORE' */
+    .sub {
+        width: 3.2rem;
+    }
+
+    /* 手机端让 DNA 容器稍微往右靠一点，给单字母留出呼吸空间 */
+    .pane-left {
+        padding-left: 10px;
+    }
+}
 	
 	.pane-right { flex: 1.0; padding: 2.5rem; display: flex; flex-direction: column; background: #050a0f; }
 	.data-header { margin-bottom: 2rem; }
