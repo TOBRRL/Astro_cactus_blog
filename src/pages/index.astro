@@ -226,22 +226,26 @@ const title = "ACCIRE | SYSTEM_V0.1";
 	.specimen-id { font-family: 'Orbitron', sans-serif; color: #00FFC3; font-size: 11px; letter-spacing: 2px; }
 	
 	.info-block { flex: 1; margin-top: 0.5rem; }
-	.line { display: flex; margin-bottom: 0.9rem; font-size: 14px; letter-spacing: 0.1em; align-items: baseline; }
-	.lbl { width: 100px; color: #00C89A; opacity: 0.8; font-weight: bold; }
+	/* 调整点：PC端行字号 14px -> 16px */
+	.line { display: flex; margin-bottom: 0.9rem; font-size: 16px; letter-spacing: 0.1em; align-items: baseline; }
+	/* 调整点：标签宽度 100px -> 110px 适配大字号 */
+	.lbl { width: 110px; color: #00C89A; opacity: 0.8; font-weight: bold; }
 	.val { color: #fff; font-weight: bold; text-transform: uppercase; text-decoration: none; }
     
     .news-link { border-bottom: 1px solid rgba(255,255,255,0.3); transition: 0.2s; }
     .news-link:hover { color: #00FFC3; border-bottom: 1px solid #00FFC3; padding-left: 4px; }
 	
+	/* 调整点：导航字号 12px -> 14px */
 	.nav-links { margin-top: 2rem; display: flex; flex-direction: column; gap: 12px; }
-	.nav-links a { color: #00FFC3; text-decoration: none; font-size: 12px; transition: 0.3s; border-left: 2px solid transparent; }
+	.nav-links a { color: #00FFC3; text-decoration: none; font-size: 14px; transition: 0.3s; border-left: 2px solid transparent; }
 	.nav-links a:hover { padding-left: 12px; border-left: 2px solid #00FFC3; background: rgba(0,255,195,0.05); }
 	
 	.action-footer { margin-top: auto; padding-top: 1.5rem; }
 	.progress-bar { width: 100%; height: 1px; background: rgba(0,255,195,0.1); margin-bottom: 1.5rem; }
 	.fill { width: 100%; height: 100%; background: #00FFC3; animation: load 4s linear infinite; box-shadow: 0 0 10px #00FFC3; }
 	
-	.enter-btn { font-family: 'Orbitron', sans-serif; display: flex; align-items: center; gap: 12px; color: #fff; text-decoration: none; font-size: 18px; font-weight: 800; }
+	/* 调整点：进入按钮字号 18px -> 20px */
+	.enter-btn { font-family: 'Orbitron', sans-serif; display: flex; align-items: center; gap: 12px; color: #fff; text-decoration: none; font-size: 20px; font-weight: 800; }
 	.cursor-block { width: 10px; height: 20px; background: #00FFC3; animation: blink 1s step-end infinite; }
 	
 	@keyframes load { from { transform: scaleX(0); } to { transform: scaleX(1); } }
