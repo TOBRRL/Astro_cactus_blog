@@ -78,3 +78,15 @@ const readingTime: string = remarkPluginFrontmatter.readingTime;
 	const observer = new IntersectionObserver(callback);
 	observer.observe(targetHeader);
 </script>
+<style is:global>
+	/* 这一段会覆盖掉那个讨厌的 # 装饰 */
+	h1::before,
+	h2::before,
+	h3::before,
+	h4::before,
+	h5::before,
+	h6::before {
+		content: none !important;
+		display: none !important;
+	}
+</style>
