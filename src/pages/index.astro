@@ -2,27 +2,25 @@
 import { getCollection } from "astro:content";
 import PageLayout from "@/layouts/Base.astro";
 
-// --- 自动化核心：读取 Content Collections ---
+// --- 修正数据读取：对齐模板 publishDate 和 id 字段 ---
 const allPosts = await getCollection("post");
-const latestPost = allPosts
-  .sort((a, b) => {
-    const dateA = new Date(a.data.publishDate || a.data.date).getTime();
-    const dateB = new Date(b.data.publishDate || b.data.date).getTime();
-    return dateB - dateA;
-  })[0];
+const latestPost = allPosts.sort(
+	(a, b) => new Date(b.data.publishDate).getTime() - new Date(a.data.publishDate).getTime(),
+)[0];
+
 const latestPostTitle = latestPost ? latestPost.data.title : "OFFLINE_NO_DATA";
-const latestPostUrl = latestPost ? `/posts/${latestPost.slug}/` : "/posts/";
-
-// --- 缝合点：仅生成日期变量，使用 / 替代 . ---
-const now = new Date();
-const dateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
-
-const title = "ACCIRE | SYSTEM_V0.1";
+const latestPostUrl = latestPost ? `/posts/${latestPost.id}/` : "/posts/";
+const dateStr = new Date()
+	.toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" })
+	.replace(/-/g, "/");
 ---
 
-<PageLayout meta={{ title }}>
-	<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-	
+<PageLayout meta={{ title: "ACCIRE | SYSTEM_V0.1" }}>
+	<link
+		href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;800&family=Share+Tech+Mono&display=swap"
+		rel="stylesheet"
+	/>
+
 	<div class="terminal-env">
 		<div class="scanline"></div>
 		<div class="system-window">
@@ -50,7 +48,6 @@ const title = "ACCIRE | SYSTEM_V0.1";
 						<span class="lbl">NEWS >></span>
 						<a href={latestPostUrl} class="val blink news-link">{latestPostTitle}</a>
 					</div>
-					
 					<div class="nav-links">
 						<a href="/posts">[01] POSTS</a>
 						<a href="/tags">[02] TAGS</a>
@@ -60,7 +57,9 @@ const title = "ACCIRE | SYSTEM_V0.1";
 				<div class="action-footer">
 					<div class="integrity-text">SYNC_BUFFER >> 100%</div>
 					<div class="progress-bar"><div class="fill"></div></div>
-					<a href="/posts" class="enter-btn">DECODE <span class="key-hint">[ENTER]</span><div class="cursor-block"></div></a>
+					<a href="/posts" class="enter-btn"
+						>DECODE <span class="key-hint">[ENTER]</span><div class="cursor-block"></div></a
+					>
 				</div>
 			</div>
 		</div>
@@ -68,204 +67,386 @@ const title = "ACCIRE | SYSTEM_V0.1";
 </PageLayout>
 
 <script>
-	const canvas = document.getElementById('fossil-gl') as HTMLCanvasElement;
-	const gl = canvas.getContext('webgl', { antialias: true })!;
+	const canvas = document.getElementById("fossil-gl") as HTMLCanvasElement;
+	const gl = canvas.getContext("webgl", { antialias: true })!;
 
-	const randGL = "float rand(vec2 n){return fract(sin(dot(n,vec2(12.9898,43.1414)))*43758.5453);}";
-	const vs = `
-		attribute vec3 p; attribute vec3 n; attribute float t;
-		uniform float time; uniform vec2 res;
-		uniform float off; uniform float yOff; uniform float uG;
-		varying vec3 vN; varying float vZ; varying float vY;
-		varying float vG;
-		mat4 rY(float a) { return mat4(cos(a),0,-sin(a),0, 0,1,0,0, sin(a),0,cos(a),0, 0,0,0,1); }
-		${randGL}
-		void main() {
-			vG = uG;
-			float y = (t > 0.5) ? yOff : p.y;
-			float ang = y * 2.5 + time * 1.5 + off;
-			mat4 m = rY(ang);
-			vec3 pos = p;
-			if(t < 0.5) pos.x += 0.45; else pos.y = 0.0;
-			if(uG > 0.5) {
-				float seg = floor(y * 30.0);
-				pos.x += (rand(vec2(time * 10.0, seg)) - 0.5) * 1.4;
-			}
-			vec4 rp = m * vec4(pos.x, y, pos.z, 1.0);
-			float z = 5.8 + rp.z;
-			gl_Position = vec4(rp.x/(z*(res.x/res.y)), rp.y/z, rp.z/10.0, 1.0);
-			vN = (m * vec4(n, 0.0)).xyz;
-			vZ = rp.z; vY = y;
-		}
-	`;
+	const vs = `attribute vec3 p, n; attribute float t; uniform float time, off, yOff, uG; uniform vec2 res; varying vec3 vN; varying float vZ, vY, vG;
+    mat4 rY(float a) { return mat4(cos(a),0,-sin(a),0, 0,1,0,0, sin(a),0,cos(a),0, 0,0,0,1); }
+    float rand(vec2 n){return fract(sin(dot(n,vec2(12.9898,43.1414)))*43758.5453);}
+    void main() {
+      vG = uG; vY = (t > 0.5) ? yOff : p.y;
+      mat4 m = rY(vY * 2.5 + time * 1.5 + off);
+      vec3 pos = p; if(t < 0.5) pos.x += 0.45; else pos.y = 0.0;
+      if(uG > 0.5) pos.x += (rand(vec2(time * 10.0, floor(vY * 30.0))) - 0.5) * 1.4;
+      vec4 rp = m * vec4(pos.x, vY, pos.z, 1.0); float z = 5.8 + rp.z;
+      gl_Position = vec4(rp.x/(z*(res.x/res.y)), rp.y/z, rp.z/10.0, 1.0);
+      vN = (m * vec4(n, 0.0)).xyz; vZ = rp.z; }`;
 
-	const fs = `
-		precision highp float;
-		varying vec3 vN; varying float vZ;
-		varying float vY; varying float vG;
-		uniform float time;
-		${randGL}
-		void main() {
-			if(vY < -4.2 || vY > 2.8) discard;
-			if(vG > 0.5) {
-				float snow = rand(gl_FragCoord.xy * sin(time * 100.0));
-				vec3 interferenceColor = mix(vec3(0.0, 1.0, 0.76), vec3(1.0), snow * 0.3);
-				gl_FragColor = vec4(interferenceColor * snow, 1.0);
-				return;
-			}
-			vec3 cyan = vec3(0.0, 1.0, 0.76);
-			float rim = pow(1.1 - abs(vN.z), 1.5);
-			float b = (vZ + 1.0) * 0.5 + 0.5;
-			gl_FragColor = vec4(cyan * (rim + 0.4) * b * 1.8, 1.0);
-		}
-	`;
+	const fs = `precision highp float; varying vec3 vN; varying float vZ, vY, vG; uniform float time;
+    float rand(vec2 n){return fract(sin(dot(n,vec2(12.9898,43.1414)))*43758.5453);}
+    void main() { if(vY < -4.2 || vY > 2.8) discard;
+      if(vG > 0.5) { float s = rand(gl_FragCoord.xy * sin(time * 100.0)); gl_FragColor = vec4(mix(vec3(0., 1., .76), vec3(1.), s*.3)*s, 1.); return; }
+      gl_FragColor = vec4(vec3(0., 1., .76) * (pow(1.1 - abs(vN.z), 1.5) + 0.4) * ((vZ + 1.0) * 0.5 + 0.5) * 1.8, 1.0); }`;
 
 	const prg = gl.createProgram()!;
-	const compile = (ty, sc) => {
-		const s = gl.createShader(ty); gl.shaderSource(s, sc); gl.compileShader(s); return s;
+	const compile = (ty: number, sc: string) => {
+		const s = gl.createShader(ty)!;
+		gl.shaderSource(s, sc);
+		gl.compileShader(s);
+		return s;
 	};
 	gl.attachShader(prg, compile(gl.VERTEX_SHADER, vs));
 	gl.attachShader(prg, compile(gl.FRAGMENT_SHADER, fs));
-	gl.linkProgram(prg); gl.useProgram(prg);
+	gl.linkProgram(prg);
+	gl.useProgram(prg);
 
-	function tube(r, h, seg, isBar) {
-		const pos=[], norm=[], type=[], idx=[];
-		let hh = isBar ? 1.0 : h; 
-		for(let i=0; i<=seg; i++){
-			let x_or_y = (i/seg)*hh - hh/2;
-			for(let j=0; j<=seg; j++){
-				let a = (j/seg)*Math.PI*2;
-				let c=Math.cos(a), s=Math.sin(a);
-				if(!isBar) { pos.push(c*r, x_or_y, s*r); norm.push(c, 0, s); }
-				else { pos.push(x_or_y, c*0.045, s*0.045); norm.push(0, c, s); }
-				type.push(isBar?1:0);
+	function tube(r: number, h: number, seg: number, isB: boolean) {
+		let p = [],
+			n = [],
+			t = [],
+			idx = [],
+			hh = isB ? 1 : h;
+		for (let i = 0; i <= seg; i++) {
+			let y = (i / seg) * hh - hh / 2;
+			for (let j = 0; j <= seg; j++) {
+				let a = (j / seg) * Math.PI * 2,
+					c = Math.cos(a),
+					s = Math.sin(a);
+				if (!isB) {
+					p.push(c * r, y, s * r);
+					n.push(c, 0, s);
+				} else {
+					p.push(y, c * 0.045, s * 0.045);
+					n.push(0, c, s);
+				}
+				t.push(isB ? 1 : 0);
 			}
 		}
-		for(let i=0; i<seg; i++){
-			for(let j=0; j<seg; j++){
-				let a = i*(seg+1)+j, b = a+seg+1;
-				idx.push(a, b, a+1, b, b+1, a+1);
+		for (let i = 0; i < seg; i++)
+			for (let j = 0; j < seg; j++) {
+				let a = i * (seg + 1) + j,
+					b = a + seg + 1;
+				idx.push(a, b, a + 1, b, b + 1, a + 1);
 			}
-		}
-		return { p:new Float32Array(pos), n:new Float32Array(norm), t:new Float32Array(type), i:new Uint16Array(idx) };
+		return {
+			p: new Float32Array(p),
+			n: new Float32Array(n),
+			t: new Float32Array(t),
+			i: new Uint16Array(idx),
+		};
 	}
 
-	const mG = tube(0.08, 14.0, 64, false);
-	const bG = tube(0.045, 1.0, 16, true); 
-	function buf(d, t) {
-		const b = gl.createBuffer(); gl.bindBuffer(t, b); gl.bufferData(t, d, gl.STATIC_DRAW);
+	const buf = (d: any, t = 34962) => {
+		const b = gl.createBuffer();
+		gl.bindBuffer(t, b);
+		gl.bufferData(t, d, 35044);
 		return b;
-	}
-	const mB = { p:buf(mG.p, 34962), n:buf(mG.n, 34962), t:buf(mG.t, 34962), i:buf(mG.i, 34963), c:mG.i.length };
-	const bB = { p:buf(bG.p, 34962), n:buf(bG.n, 34962), t:buf(bG.t, 34962), i:buf(bG.i, 34963), c:bG.i.length };
-	const uYOff = gl.getUniformLocation(prg, "yOff"), uT = gl.getUniformLocation(prg, "time"), uR = gl.getUniformLocation(prg, "res"), uO = gl.getUniformLocation(prg, "off"), uG = gl.getUniformLocation(prg, "uG");
-	const laP = gl.getAttribLocation(prg, "p"), laN = gl.getAttribLocation(prg, "n"), laT = gl.getAttribLocation(prg, "t");
-	gl.enableVertexAttribArray(laP); gl.enableVertexAttribArray(laN); gl.enableVertexAttribArray(laT);
+	};
+	const mkB = (g: any) => ({
+		p: buf(g.p),
+		n: buf(g.n),
+		t: buf(g.t),
+		i: buf(g.i, 34963),
+		c: g.i.length,
+	});
+	const mB = mkB(tube(0.08, 14, 64, false)),
+		bB = mkB(tube(0.045, 1, 16, true));
 
-	let nextGlitchTime = 0;
-	let isGlitching = false;
-	let glitchEndTime = 0;
+	const u = {
+		y: gl.getUniformLocation(prg, "yOff"),
+		t: gl.getUniformLocation(prg, "time"),
+		r: gl.getUniformLocation(prg, "res"),
+		o: gl.getUniformLocation(prg, "off"),
+		g: gl.getUniformLocation(prg, "uG"),
+	};
+	const atts = {
+		p: gl.getAttribLocation(prg, "p"),
+		n: gl.getAttribLocation(prg, "n"),
+		t: gl.getAttribLocation(prg, "t"),
+	};
+	Object.values(atts).forEach((l) => gl.enableVertexAttribArray(l));
 
-	function finalLoop(t) {
-		canvas.width = canvas.clientWidth * devicePixelRatio; canvas.height = canvas.clientHeight * devicePixelRatio;
+	let nG = 0,
+		isG = false,
+		eG = 0;
+	function loop(t: number) {
+		canvas.width = canvas.clientWidth * devicePixelRatio;
+		canvas.height = canvas.clientHeight * devicePixelRatio;
 		gl.viewport(0, 0, canvas.width, canvas.height);
-		gl.clearColor(0.01, 0.02, 0.04, 1.0); gl.clear(16640); gl.enable(2929);
-		
-		if (t > nextGlitchTime && !isGlitching) {
-			isGlitching = true;
-			glitchEndTime = t + 100;
-			nextGlitchTime = t + 5000 + Math.random() * 2000;
+		gl.clearColor(0.01, 0.02, 0.04, 1.0);
+		gl.clear(16640);
+		gl.enable(2929);
+		if (t > nG && !isG) {
+			isG = true;
+			eG = t + 100;
+			nG = t + 5000 + Math.random() * 2000;
 		}
-		if (isGlitching && t > glitchEndTime) isGlitching = false;
+		if (isG && t > eG) isG = false;
+		gl.uniform2f(u.r, canvas.width, canvas.height);
+		gl.uniform1f(u.t, t * 0.001);
+		gl.uniform1f(u.g, isG ? 1 : 0);
 
-		gl.uniform2f(uR, canvas.width, canvas.height); 
-		gl.uniform1f(uT, t * 0.001);
-		gl.uniform1f(uG, isGlitching ? 1.0 : 0.0);
+		const draw = (b: any, y: number, o: number) => {
+			gl.bindBuffer(34962, b.p);
+			gl.vertexAttribPointer(atts.p, 3, 5126, false, 0, 0);
+			gl.bindBuffer(34962, b.n);
+			gl.vertexAttribPointer(atts.n, 3, 5126, false, 0, 0);
+			gl.bindBuffer(34962, b.t);
+			gl.vertexAttribPointer(atts.t, 1, 5126, false, 0, 0);
+			gl.bindBuffer(34963, b.i);
+			gl.uniform1f(u.y, y);
+			gl.uniform1f(u.o, o);
+			gl.drawElements(4, b.c, 5123, 0);
+		};
 
-		gl.bindBuffer(34962, mB.p); gl.vertexAttribPointer(laP, 3, 5126, false, 0, 0);
-		gl.bindBuffer(34962, mB.n); gl.vertexAttribPointer(laN, 3, 5126, false, 0, 0);
-		gl.bindBuffer(34962, mB.t); gl.vertexAttribPointer(laT, 1, 5126, false, 0, 0);
-		gl.bindBuffer(34963, mB.i);
-		gl.uniform1f(uYOff, 0.0); gl.uniform1f(uO, 0.0);
-		gl.drawElements(4, mB.c, 5123, 0);
-		gl.uniform1f(uO, 3.14159); gl.drawElements(4, mB.c, 5123, 0);
-
-		gl.bindBuffer(34962, bB.p); gl.vertexAttribPointer(laP, 3, 5126, false, 0, 0);
-		gl.bindBuffer(34962, bB.n); gl.vertexAttribPointer(laN, 3, 5126, false, 0, 0);
-		gl.bindBuffer(34962, bB.t); gl.vertexAttribPointer(laT, 1, 5126, false, 0, 0);
+		draw(mB, 0, 0);
+		draw(mB, 0, Math.PI);
+		gl.bindBuffer(34962, bB.p);
+		gl.vertexAttribPointer(atts.p, 3, 5126, false, 0, 0);
+		gl.bindBuffer(34962, bB.n);
+		gl.vertexAttribPointer(atts.n, 3, 5126, false, 0, 0);
+		gl.bindBuffer(34962, bB.t);
+		gl.vertexAttribPointer(atts.t, 1, 5126, false, 0, 0);
 		gl.bindBuffer(34963, bB.i);
-		for(let i=-60; i<=40; i++) {
-			gl.uniform1f(uYOff, i * 0.15); gl.drawElements(4, bB.c, 5123, 0);
+		for (let i = -60; i <= 40; i++) {
+			gl.uniform1f(u.y, i * 0.15);
+			gl.drawElements(4, bB.c, 5123, 0);
 		}
-		requestAnimationFrame(finalLoop);
+		requestAnimationFrame(loop);
 	}
-	finalLoop(0);
-	window.onkeydown = (e) => { if(e.key === 'Enter') window.location.href = '/posts'; };
+	loop(0);
+	window.onkeydown = (e: KeyboardEvent) => e.key === "Enter" && (window.location.href = "/posts");
 </script>
 
 <style is:global>
-	#main-header, footer { display: none !important; }
-	* { box-sizing: border-box; user-select: none; margin: 0; padding: 0; }
-	html, body { background: #000; overflow: hidden; height: 100vh; font-family: 'Share Tech Mono', monospace; color: #fff; }
-	
-	html, body { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2300FFC3' stroke-width='2'%3E%3Cpath d='M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z'/%3E%3C/svg%3E"), auto !important; }
-	a, .enter-btn { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2300FFC3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v5'/%3E%3Cpath d='M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v10'/%3E%3Cpath d='M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8'/%3E%3Cpath d='M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15'/%3E%3C/svg%3E"), pointer !important; }
+	#main-header,
+	footer {
+		display: none !important;
+	}
+	* {
+		box-sizing: border-box;
+		user-select: none;
+		margin: 0;
+		padding: 0;
+	}
+	html,
+	body {
+		background: #000;
+		overflow: hidden;
+		height: 100vh;
+		font-family: "Share Tech Mono", monospace;
+		color: #fff;
+		-webkit-font-smoothing: antialiased;
+	}
+	html,
+	body {
+		cursor:
+			url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2300FFC3' stroke-width='2'%3E%3Cpath d='M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z'/%3E%3C/svg%3E"),
+			auto !important;
+	}
 
-	.terminal-env { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1000; }
-	.system-window { width: 960px; height: 500px; display: flex; border: 1px solid #00FFC3; background: #050a0f; box-shadow: 0 0 40px rgba(0, 255, 195, 0.2); overflow: hidden; }
-	
-	.pane-left { flex: 0.7; position: relative; border-right: 1px solid rgba(0,255,195,0.2); background: #000; overflow: hidden; }
-	#fossil-gl { width: 100%; height: 100%; display: block; }
-	
-	.logo-layer { position: absolute; top: 1.8rem; left: 1.8rem; pointer-events: none; z-index: 5; }
-	.tag { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; letter-spacing: 0.6em; font-weight: 800; color: #fff; display: inline-block; white-space: nowrap; overflow: hidden; }
-	.sub { color: #00FFC3; font-size: 0.8rem; letter-spacing: 0.2em; margin-top: 0.3rem; display: block; white-space: nowrap; overflow: hidden; }
-	
-	.pane-right { flex: 1.0; padding: 2.5rem; display: flex; flex-direction: column; background: #050a0f; }
-	.data-header { margin-bottom: 2rem; }
-	.specimen-id { font-family: 'Orbitron', sans-serif; color: #00FFC3; font-size: 11px; letter-spacing: 2px; }
-	
-	.info-block { flex: 1; margin-top: 0.5rem; }
-	/* 调整点：PC端行字号 14px -> 16px */
-	.line { display: flex; margin-bottom: 0.9rem; font-size: 16px; letter-spacing: 0.1em; align-items: baseline; }
-	/* 调整点：标签宽度 100px -> 110px 适配大字号 */
-	.lbl { width: 110px; color: #00C89A; opacity: 0.8; font-weight: bold; }
-	.val { color: #fff; font-weight: bold; text-transform: uppercase; text-decoration: none; }
-    
-    .news-link { border-bottom: 1px solid rgba(255,255,255,0.3); transition: 0.2s; }
-    .news-link:hover { color: #00FFC3; border-bottom: 1px solid #00FFC3; padding-left: 4px; }
-	
-	/* 调整点：导航字号 12px -> 14px */
-	.nav-links { margin-top: 2rem; display: flex; flex-direction: column; gap: 12px; }
-	.nav-links a { color: #00FFC3; text-decoration: none; font-size: 14px; transition: 0.3s; border-left: 2px solid transparent; }
-	.nav-links a:hover { padding-left: 12px; border-left: 2px solid #00FFC3; background: rgba(0,255,195,0.05); }
-	
-	.action-footer { margin-top: auto; padding-top: 1.5rem; }
-	.progress-bar { width: 100%; height: 1px; background: rgba(0,255,195,0.1); margin-bottom: 1.5rem; }
-	.fill { width: 100%; height: 100%; background: #00FFC3; animation: load 4s linear infinite; box-shadow: 0 0 10px #00FFC3; }
-	
-	/* 调整点：进入按钮字号 18px -> 20px */
-	.enter-btn { font-family: 'Orbitron', sans-serif; display: flex; align-items: center; gap: 12px; color: #fff; text-decoration: none; font-size: 20px; font-weight: 800; }
-	.cursor-block { width: 10px; height: 20px; background: #00FFC3; animation: blink 1s step-end infinite; }
-	
-	@keyframes load { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-	@keyframes blink { 50% { opacity: 0; } }
-	.scanline { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0, 255, 195, 0.03) 50%); background-size: 100% 4px; z-index: 10; }
+	.terminal-env {
+		position: fixed;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1000;
+	}
+	.system-window {
+		width: 960px;
+		height: 500px;
+		display: flex;
+		border: 1px solid #00ffc3;
+		background: #050a0f;
+		box-shadow: 0 0 40px rgba(0, 255, 195, 0.2);
+		overflow: hidden;
+	}
+
+	.pane-left {
+		flex: 0.7;
+		position: relative;
+		border-right: 1px solid rgba(0, 255, 195, 0.2);
+		background: #000;
+		overflow: hidden;
+	}
+	#fossil-gl {
+		width: 100%;
+		height: 100%;
+		display: block;
+	}
+
+	.logo-layer {
+		position: absolute;
+		top: 1.8rem;
+		left: 1.8rem;
+		pointer-events: none;
+		z-index: 5;
+	}
+	.tag {
+		font-family: "Orbitron", sans-serif;
+		font-size: 1.5rem;
+		letter-spacing: 0.6em;
+		font-weight: 800;
+	}
+	.sub {
+		color: #00ffc3;
+		font-size: 0.8rem;
+		letter-spacing: 0.2em;
+		margin-top: 0.3rem;
+		display: block;
+	}
+
+	.pane-right {
+		flex: 1;
+		padding: 2.5rem;
+		display: flex;
+		flex-direction: column;
+		background: #050a0f;
+	}
+	.specimen-id {
+		font-family: "Orbitron", sans-serif;
+		color: #00ffc3;
+		font-size: 11px;
+		letter-spacing: 2px;
+		margin-bottom: 2rem;
+	}
+
+	.info-block {
+		flex: 1;
+		margin-top: 0.5rem;
+	}
+	.line {
+		display: flex;
+		margin-bottom: 0.9rem;
+		font-size: 16px;
+		letter-spacing: 0.1em;
+		align-items: baseline;
+	}
+	.lbl {
+		width: 100px;
+		color: #00c89a;
+		opacity: 0.8;
+		font-weight: bold;
+	}
+	.val {
+		color: #fff;
+		font-weight: bold;
+		text-transform: uppercase;
+		text-decoration: none;
+	}
+	.news-link {
+		border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+		transition: 0.2s;
+	}
+	.news-link:hover {
+		color: #00ffc3;
+		border-bottom: 1px solid #00ffc3;
+		padding-left: 4px;
+	}
+
+	.nav-links {
+		margin-top: 2rem;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	.nav-links a {
+		color: #00ffc3;
+		text-decoration: none;
+		font-size: 14px;
+		transition: 0.3s;
+		border-left: 2px solid transparent;
+	}
+	.nav-links a:hover {
+		padding-left: 12px;
+		border-left: 2px solid #00ffc3;
+		background: rgba(0, 255, 195, 0.05);
+	}
+
+	.action-footer {
+		margin-top: auto;
+		padding-top: 1.5rem;
+	}
+	.progress-bar {
+		width: 100%;
+		height: 1px;
+		background: rgba(0, 255, 195, 0.1);
+		margin-bottom: 1.5rem;
+	}
+	.fill {
+		width: 100%;
+		height: 100%;
+		background: #00ffc3;
+		animation: load 4s linear infinite;
+		box-shadow: 0 0 10px #00ffc3;
+	}
+	.enter-btn {
+		font-family: "Orbitron", sans-serif;
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		font-size: 20px;
+		font-weight: 800;
+		text-decoration: none;
+		color: #fff;
+	}
+	.cursor-block {
+		width: 10px;
+		height: 20px;
+		background: #00ffc3;
+		animation: blink 1s step-end infinite;
+	}
+
+	@keyframes load {
+		from {
+			transform: scaleX(0);
+		}
+		to {
+			transform: scaleX(1);
+		}
+	}
+	@keyframes blink {
+		50% {
+			opacity: 0;
+		}
+	}
+	.scanline {
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+		background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 255, 195, 0.03) 50%);
+		background-size: 100% 4px;
+		z-index: 10;
+	}
 
 	@media (max-width: 768px) {
-		.tag { 
+		.tag {
 			width: 6.8rem;
 			letter-spacing: -0.13em;
-			text-overflow: clip; 
+			overflow: hidden;
+			display: inline-block;
+			white-space: nowrap;
 		}
-		.sub { 
+		.sub {
 			width: 2.9rem !important;
 			letter-spacing: 0.1em;
-			text-overflow: clip; 
+			overflow: hidden;
+			display: block;
+			white-space: nowrap;
 		}
-		.logo-layer { left: 1rem; top: 1.2rem; }
-		.pane-right { padding: 1.5rem; }
-		.line { font-size: 12px; }
-		.lbl { width: 80px; }
+		.logo-layer {
+			left: 1rem;
+			top: 1.2rem;
+		}
+		.pane-right {
+			padding: 1.5rem;
+		}
+		.line {
+			font-size: 12px;
+		}
+		.lbl {
+			width: 80px;
+		}
 	}
 </style>

@@ -1,4 +1,5 @@
 ---
+slug: "the-first-blog"
 title: "the first blog"
 description: "在这里记录我对当下反思与批判的第一步。"
 publishDate: "2026-04-10"
