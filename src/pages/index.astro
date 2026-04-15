@@ -1,213 +1,247 @@
 ---
+import { getCollection } from "astro:content";
 import PageLayout from "@/layouts/Base.astro";
-const title = "ACCIRE | TERMINAL";
+
+// --- 自动化核心：读取最新文章并生成链接 ---
+const allPosts = await getCollection("post");
+const latestPost = allPosts
+  .sort((a, b) => {
+    const dateA = new Date(a.data.publishDate || a.data.date).getTime();
+    const dateB = new Date(b.data.publishDate || b.data.date).getTime();
+    return dateB - dateA;
+  })[0];
+
+const latestPostTitle = latestPost ? latestPost.data.title : "OFFLINE_NO_DATA";
+const latestPostUrl = latestPost ? `/posts/${latestPost.slug}` : "#";
+
+const title = "ACCIRE | SYSTEM_V0.1";
 ---
 
 <PageLayout meta={{ title }}>
+	<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+	
 	<div class="terminal-env">
-		<canvas id="bg-canvas"></canvas>
-		
-		<div class="adaptive-layout">
-			<div class="visual-core">
-				<canvas id="star-canvas"></canvas>
+		<div class="scanline"></div>
+		<div class="system-window">
+			<div class="pane-left">
+				<canvas id="fossil-gl"></canvas>
+				<div class="scanner-overlay">
+					<div class="corner top-left">SYSTEM_MONITORING >> ACTIVE</div>
+					<div class="corner bottom-right">ACCIRE_OS >> V0.1</div>
+				</div>
+				<div class="logo-layer">
+					<div class="tag">A C C I R E</div>
+					<div class="tag sub">CORE_TERMINAL</div>
+				</div>
 			</div>
 
-			<div class="interaction-zone">
-				<div class="glass-card">
-					<div class="glass-blur"></div>
-					<div class="card-content">
-						<header class="card-header">
-							<span class="id">ACCIRE_SYSTEM</span>
-							<span class="status pulse">CONNECTED</span>
-						</header>
-						
-						<div class="main-manifesto">
-							<h1 class="cn-title">星轨不璇</h1>
-							<p class="en-sub">STELLAR ORBITALS: STATIC.</p>
-						</div>
-						
-						<div class="divider"></div>
-						
-						<a href="/posts" class="boot-link">
-							<span class="btn-text">I N I T I A L I Z E</span>
-							<div class="scan-line"></div>
-						</a>
+			<div class="pane-right">
+				<div class="data-header">
+					<div class="specimen-id">UPLINK_STATUS >> UNSTABLE</div>
+					<div class="line-hr"></div>
+				</div>
+				<div class="info-block">
+					<div class="line"><span class="lbl">ID >></span><span class="val">ACCIRE</span></div>
+					<div class="line">
+						<span class="lbl">NEWS >></span>
+						<a href={latestPostUrl} class="val blink news-link">{latestPostTitle}</a>
 					</div>
+					
+					<div class="nav-links">
+						<a href="/posts">[01] POSTS</a>
+						<a href="/tags">[02] TAGS</a>
+						<a href="/about">[03] README</a>
+					</div>
+				</div>
+				<div class="action-footer">
+					<div class="integrity-text">SYNC_BUFFER >> 100%</div>
+					<div class="progress-bar"><div class="fill"></div></div>
+					<a href="/posts" class="enter-btn">DECODE <span class="key-hint">[ENTER]</span><div class="cursor-block"></div></a>
 				</div>
 			</div>
 		</div>
-
-		<footer class="system-footer">
-			<div class="f-item">COORD: 104.06 / 30.67</div>
-			<div id="clock" class="f-item">00:00:00</div>
-			<div class="f-item">SYNC_STABLE</div>
-		</footer>
 	</div>
 </PageLayout>
 
 <script>
-	const bgCanvas = document.getElementById('bg-canvas') as HTMLCanvasElement;
-	const starCanvas = document.getElementById('star-canvas') as HTMLCanvasElement;
-	const bgCtx = bgCanvas.getContext('2d')!;
-	const starCtx = starCanvas.getContext('2d')!;
-	let width, height;
+    // WebGL 逻辑部分完全保留，包含你要求的 5-7s 闪烁与双倍错位
+	const canvas = document.getElementById('fossil-gl') as HTMLCanvasElement;
+	const gl = canvas.getContext('webgl', { antialias: true })!;
 
-	function noise(x, y, t) {
-		return Math.sin(x * 0.01 + t) * Math.cos(y * 0.01 - t * 0.7);
-	}
+	const randGL = "float rand(vec2 n){return fract(sin(dot(n,vec2(12.9898,43.1414)))*43758.5453);}";
 
-	function init() {
-		width = window.innerWidth;
-		height = window.innerHeight;
-		bgCanvas.width = width;
-		bgCanvas.height = height;
-		starCanvas.width = starCanvas.parentElement.clientWidth;
-		starCanvas.height = starCanvas.parentElement.clientHeight;
-	}
+	const vs = `
+		attribute vec3 p; attribute vec3 n; attribute float t;
+		uniform float time; uniform vec2 res; uniform float off; uniform float yOff; uniform float uG;
+		varying vec3 vN; varying float vZ; varying float vY; varying float vG;
+		mat4 rY(float a) { return mat4(cos(a),0,-sin(a),0, 0,1,0,0, sin(a),0,cos(a),0, 0,0,0,1); }
+		${randGL}
+		void main() {
+			vG = uG; 
+			float y = (t > 0.5) ? yOff : p.y;
+			float ang = y * 2.5 + time * 1.5 + off;
+			mat4 m = rY(ang);
+			vec3 pos = p;
+			if(t < 0.5) pos.x += 0.45; else pos.y = 0.0;
+			
+			if(uG > 0.5) {
+				float seg = floor(y * 30.0);
+				pos.x += (rand(vec2(time * 10.0, seg)) - 0.5) * 1.4; // 错位翻倍
+			}
 
-	function draw(time) {
-		const t = time * 0.0003;
-		bgCtx.fillStyle = "rgba(5, 6, 8, 0.25)";
-		bgCtx.fillRect(0, 0, width, height);
-		bgCtx.fillStyle = "rgba(100, 160, 170, 0.2)";
-		const bgSpacing = 40;
-		for (let x = bgSpacing; x < width; x += bgSpacing) {
-			for (let y = bgSpacing; y < height; y += bgSpacing) {
-				const n = noise(x * 0.08, y * 0.08, t * 0.8);
-				bgCtx.beginPath();
-				bgCtx.arc(x + Math.sin(x+t)*10, y + Math.cos(y+t)*10, (n + 1) * 0.6, 0, Math.PI * 2);
-				bgCtx.fill();
+			vec4 rp = m * vec4(pos.x, y, pos.z, 1.0);
+			float z = 5.8 + rp.z;
+			gl_Position = vec4(rp.x/(z*(res.x/res.y)), rp.y/z, rp.z/10.0, 1.0);
+			vN = (m * vec4(n, 0.0)).xyz; vZ = rp.z; vY = y;
+		}
+	`;
+
+	const fs = `
+		precision highp float;
+		varying vec3 vN; varying float vZ; varying float vY; varying float vG;
+		uniform float time;
+		${randGL}
+		void main() {
+			if(vY < -4.2 || vY > 2.8) discard;
+			if(vG > 0.5) {
+				float snow = rand(gl_FragCoord.xy * sin(time * 100.0));
+				vec3 interferenceColor = mix(vec3(0.0, 1.0, 0.76), vec3(1.0), snow * 0.3);
+				gl_FragColor = vec4(interferenceColor * snow, 1.0);
+				return;
+			}
+			vec3 cyan = vec3(0.0, 1.0, 0.76);
+			float rim = pow(1.1 - abs(vN.z), 1.5);
+			float b = (vZ + 1.0) * 0.5 + 0.5;
+			gl_FragColor = vec4(cyan * (rim + 0.4) * b * 1.8, 1.0);
+		}
+	`;
+
+	const prg = gl.createProgram()!;
+	const compile = (ty, sc) => {
+		const s = gl.createShader(ty); gl.shaderSource(s, sc); gl.compileShader(s); return s;
+	};
+	gl.attachShader(prg, compile(gl.VERTEX_SHADER, vs));
+	gl.attachShader(prg, compile(gl.FRAGMENT_SHADER, fs));
+	gl.linkProgram(prg); gl.useProgram(prg);
+
+	function tube(r, h, seg, isBar) {
+		const pos=[], norm=[], type=[], idx=[];
+		let hh = isBar ? 1.0 : h; 
+		for(let i=0; i<=seg; i++){
+			let x_or_y = (i/seg)*hh - hh/2;
+			for(let j=0; j<=seg; j++){
+				let a = (j/seg)*Math.PI*2;
+				let c=Math.cos(a), s=Math.sin(a);
+				if(!isBar) { pos.push(c*r, x_or_y, s*r); norm.push(c, 0, s); }
+				else { pos.push(x_or_y, c*0.045, s*0.045); norm.push(0, c, s); }
+				type.push(isBar?1:0);
 			}
 		}
-
-		starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
-		const cX = starCanvas.width / 2;
-		const cY = starCanvas.height / 2;
-		const dots = 900;
-		const radius = Math.min(starCanvas.width, starCanvas.height) * 0.35;
-		starCtx.fillStyle = "rgba(0, 255, 255, 0.85)";
-		
-		for (let i = 0; i < dots; i++) {
-			const angle = (i / dots) * Math.PI * 2;
-			const pX = cX + Math.cos(angle) * radius;
-			const pY = cY + Math.sin(angle) * radius;
-			const vNoise = noise(pX * 0.05, pY * 0.05, t * 1.5);
-			const oX = Math.cos(angle + vNoise) * vNoise * 40;
-			const oY = Math.sin(angle - vNoise) * vNoise * 40;
-			starCtx.beginPath();
-			starCtx.arc(pX + oX, pY + oY, (1.2 + vNoise) * 1.3, 0, Math.PI * 2);
-			starCtx.fill();
+		for(let i=0; i<seg; i++){
+			for(let j=0; j<seg; j++){
+				let a = i*(seg+1)+j, b = a+seg+1;
+				idx.push(a, b, a+1, b, b+1, a+1);
+			}
 		}
-		requestAnimationFrame(draw);
+		return { p:new Float32Array(pos), n:new Float32Array(norm), t:new Float32Array(type), i:new Uint16Array(idx) };
 	}
 
-	window.addEventListener('resize', init);
-	init();
-	draw(0);
+	const mG = tube(0.08, 14.0, 64, false); 
+	const bG = tube(0.045, 1.0, 16, true); 
+	function buf(d, t) {
+		const b = gl.createBuffer(); gl.bindBuffer(t, b); gl.bufferData(t, d, gl.STATIC_DRAW); return b;
+	}
+	const mB = { p:buf(mG.p, 34962), n:buf(mG.n, 34962), t:buf(mG.t, 34962), i:buf(mG.i, 34963), c:mG.i.length };
+	const bB = { p:buf(bG.p, 34962), n:buf(bG.n, 34962), t:buf(bG.t, 34962), i:buf(bG.i, 34963), c:bG.i.length };
 
-	setInterval(() => {
-		const clock = document.getElementById('clock');
-		if (clock) clock.innerText = new Date().toLocaleTimeString('en-GB');
-	}, 1000);
+	const uYOff = gl.getUniformLocation(prg, "yOff"), uT = gl.getUniformLocation(prg, "time"), uR = gl.getUniformLocation(prg, "res"), uO = gl.getUniformLocation(prg, "off"), uG = gl.getUniformLocation(prg, "uG");
+	const laP = gl.getAttribLocation(prg, "p"), laN = gl.getAttribLocation(prg, "n"), laT = gl.getAttribLocation(prg, "t");
+	gl.enableVertexAttribArray(laP); gl.enableVertexAttribArray(laN); gl.enableVertexAttribArray(laT);
+
+	let nextGlitchTime = 0;
+	let isGlitching = false;
+	let glitchEndTime = 0;
+
+	function finalLoop(t) {
+		canvas.width = canvas.clientWidth * devicePixelRatio; canvas.height = canvas.clientHeight * devicePixelRatio;
+		gl.viewport(0, 0, canvas.width, canvas.height);
+		gl.clearColor(0.01, 0.02, 0.04, 1.0); gl.clear(16640); gl.enable(2929);
+		
+		if (t > nextGlitchTime && !isGlitching) {
+			isGlitching = true;
+			glitchEndTime = t + 100; // 0.1s 持续
+			nextGlitchTime = t + 5000 + Math.random() * 2000; // 5-7s 间隔
+		}
+		if (isGlitching && t > glitchEndTime) isGlitching = false;
+
+		gl.uniform2f(uR, canvas.width, canvas.height); 
+		gl.uniform1f(uT, t * 0.001);
+		gl.uniform1f(uG, isGlitching ? 1.0 : 0.0);
+
+		gl.bindBuffer(34962, mB.p); gl.vertexAttribPointer(laP, 3, 5126, false, 0, 0);
+		gl.bindBuffer(34962, mB.n); gl.vertexAttribPointer(laN, 3, 5126, false, 0, 0);
+		gl.bindBuffer(34962, mB.t); gl.vertexAttribPointer(laT, 1, 5126, false, 0, 0);
+		gl.bindBuffer(34963, mB.i);
+		gl.uniform1f(uYOff, 0.0); gl.uniform1f(uO, 0.0); gl.drawElements(4, mB.c, 5123, 0);
+		gl.uniform1f(uO, 3.14159); gl.drawElements(4, mB.c, 5123, 0);
+
+		gl.bindBuffer(34962, bB.p); gl.vertexAttribPointer(laP, 3, 5126, false, 0, 0);
+		gl.bindBuffer(34962, bB.n); gl.vertexAttribPointer(laN, 3, 5126, false, 0, 0);
+		gl.bindBuffer(34962, bB.t); gl.vertexAttribPointer(laT, 1, 5126, false, 0, 0);
+		gl.bindBuffer(34963, bB.i);
+		for(let i=-60; i<=40; i++) {
+			gl.uniform1f(uYOff, i * 0.15); gl.drawElements(4, bB.c, 5123, 0);
+		}
+		requestAnimationFrame(finalLoop);
+	}
+	finalLoop(0);
+	window.onkeydown = (e) => { if(e.key === 'Enter') window.location.href = '/posts'; };
 </script>
 
 <style is:global>
 	#main-header, footer { display: none !important; }
-	* { user-select: none !important; -webkit-user-select: none; }
-
-	.terminal-env {
-		position: fixed; inset: 0;
-		background: #050608;
-		color: #e2e8f0;
-		font-family: "PingFang SC", "Microsoft YaHei", monospace;
-		z-index: 9999; overflow: hidden;
-	}
-
-	#bg-canvas { position: absolute; inset: 0; z-index: 1; }
-
-	.adaptive-layout {
-		position: relative; z-index: 10;
-		width: 100%; height: 100%;
-		display: flex; flex-direction: row;
-	}
-
-	.visual-core { flex: 1.2; height: 100%; display: flex; align-items: center; justify-content: center; }
-	.interaction-zone { flex: 1; height: 100%; display: flex; align-items: center; justify-content: center; padding: 2rem; }
-
-	.glass-card {
-		position: relative; width: 100%; max-width: 420px;
-		border: 1px solid rgba(255, 255, 255, 0.1);
-	}
-
-	.glass-blur {
-		position: absolute; inset: 0;
-		background: rgba(0, 10, 20, 0.8);
-		backdrop-filter: blur(25px) saturate(120%);
-		-webkit-backdrop-filter: blur(25px) saturate(120%);
-	}
-
-	.card-content { position: relative; z-index: 2; padding: 4.5rem 3rem; }
+	* { box-sizing: border-box; user-select: none; margin: 0; padding: 0; }
+	html, body { background: #000; overflow: hidden; height: 100vh; font-family: 'Share Tech Mono', monospace; color: #fff; }
 	
-	.card-header { display: flex; justify-content: space-between; font-size: 9px; opacity: 0.25; letter-spacing: 0.3em; margin-bottom: 3.5rem; font-family: monospace; }
-	.status { color: #00ffcc; }
+    /* 鼠标样式 */
+	html, body { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2300FFC3' stroke-width='2'%3E%3Cpath d='M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z'/%3E%3C/svg%3E"), auto !important; }
+	a, .enter-btn { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2300FFC3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v5'/%3E%3Cpath d='M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v10'/%3E%3Cpath d='M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8'/%3E%3Cpath d='M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15'/%3E%3C/svg%3E"), pointer !important; }
 
-	.cn-title {
-		font-size: 2.4rem;
-		font-weight: 200;
-		letter-spacing: 0.6em;
-		color: #fff;
-		margin-bottom: 0.8rem;
-		padding-left: 0.6em;
-	}
-	.en-sub {
-		font-size: 9px;
-		opacity: 0.2;
-		letter-spacing: 0.4em;
-		font-family: monospace;
-	}
-
-	.divider { width: 30px; height: 1px; background: rgba(0, 255, 204, 0.4); margin: 3rem 0; }
-
-	.boot-link {
-		position: relative; display: block;
-		padding: 1.2rem; border: 1px solid rgba(0, 255, 204, 0.4);
-		color: #00ffcc; text-decoration: none; text-align: center;
-		transition: all 0.3s ease;
-		background: rgba(0, 255, 204, 0.02); overflow: hidden;
-	}
-
-	.btn-text { font-size: 11px; letter-spacing: 0.6em; padding-left: 0.6em; opacity: 0.8; font-family: monospace; }
-
-	.boot-link:hover {
-		background: #00ffcc; color: #000;
-		box-shadow: 0 0 30px rgba(0, 255, 204, 0.5);
-		border-color: #00ffcc;
-	}
-	.boot-link:hover .btn-text { opacity: 1; font-weight: 700; }
-
-	.scan-line {
-		position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-		background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-		animation: scan 4s infinite linear;
-	}
-
-	@keyframes scan { 100% { left: 100%; } }
-
-	.system-footer {
-		position: absolute; bottom: 0; width: 100%; z-index: 20;
-		display: flex; justify-content: space-between;
-		padding: 1.5rem 3rem; font-size: 8px; opacity: 0.2; font-family: monospace;
-	}
-
-	@media (max-width: 768px) {
-		.adaptive-layout { flex-direction: column; }
-		.visual-core { flex: 1; min-height: 40vh; }
-		.interaction-zone { flex: 1.2; padding: 1.5rem; align-items: flex-start; }
-		.cn-title { font-size: 2rem; letter-spacing: 0.4em; }
-		.f-item:not(#clock) { display: none; }
-		.system-footer { justify-content: center; }
-	}
-
-	.pulse { animation: blink 3s infinite; }
-	@keyframes blink { 50% { opacity: 0.1; } }
+	.terminal-env { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1000; }
+	.system-window { width: 960px; height: 500px; display: flex; border: 1px solid #00FFC3; background: #050a0f; box-shadow: 0 0 40px rgba(0, 255, 195, 0.2); overflow: hidden; }
+	
+	.pane-left { flex: 0.7; position: relative; border-right: 1px solid rgba(0,255,195,0.2); background: #000; overflow: hidden; }
+	#fossil-gl { width: 100%; height: 100%; display: block; }
+	
+	.logo-layer { position: absolute; top: 1.8rem; left: 1.8rem; pointer-events: none; z-index: 5; }
+	.tag { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; letter-spacing: 0.6em; font-weight: 800; color: #fff; }
+	.sub { color: #00FFC3; font-size: 0.8rem; letter-spacing: 0.2em; margin-top: 0.3rem; }
+	
+	.pane-right { flex: 1.0; padding: 2.5rem; display: flex; flex-direction: column; background: #050a0f; }
+	.data-header { margin-bottom: 2rem; }
+	.specimen-id { font-family: 'Orbitron', sans-serif; color: #00FFC3; font-size: 11px; letter-spacing: 2px; }
+	
+	.info-block { flex: 1; margin-top: 0.5rem; }
+	.line { display: flex; margin-bottom: 0.9rem; font-size: 14px; letter-spacing: 0.1em; align-items: baseline; }
+	.lbl { width: 100px; color: #00C89A; opacity: 0.8; font-weight: bold; }
+	.val { color: #fff; font-weight: bold; text-transform: uppercase; text-decoration: none; }
+    
+    /* 链接样式 */
+    .news-link { border-bottom: 1px solid rgba(255,255,255,0.3); transition: 0.2s; }
+    .news-link:hover { color: #00FFC3; border-bottom: 1px solid #00FFC3; padding-left: 4px; }
+	
+	.nav-links { margin-top: 2rem; display: flex; flex-direction: column; gap: 12px; }
+	.nav-links a { color: #00FFC3; text-decoration: none; font-size: 12px; transition: 0.3s; border-left: 2px solid transparent; }
+	.nav-links a:hover { padding-left: 12px; border-left: 2px solid #00FFC3; background: rgba(0,255,195,0.05); }
+	
+	.action-footer { margin-top: auto; padding-top: 1.5rem; }
+	.progress-bar { width: 100%; height: 1px; background: rgba(0,255,195,0.1); margin-bottom: 1.5rem; }
+	.fill { width: 100%; height: 100%; background: #00FFC3; animation: load 4s linear infinite; box-shadow: 0 0 10px #00FFC3; }
+	
+	.enter-btn { font-family: 'Orbitron', sans-serif; display: flex; align-items: center; gap: 12px; color: #fff; text-decoration: none; font-size: 18px; font-weight: 800; }
+	.cursor-block { width: 10px; height: 20px; background: #00FFC3; animation: blink 1s step-end infinite; }
+	
+	@keyframes load { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+	@keyframes blink { 50% { opacity: 0; } }
+	.scanline { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0, 255, 195, 0.03) 50%); background-size: 100% 4px; z-index: 10; }
 </style>
