@@ -2,7 +2,7 @@
 import { getCollection } from "astro:content";
 import PageLayout from "@/layouts/Base.astro";
 
-// --- 自动化核心：读取最新文章并生成链接 ---
+// --- 自动化核心：读取 Content Collections ---
 const allPosts = await getCollection("post");
 const latestPost = allPosts
   .sort((a, b) => {
@@ -12,7 +12,7 @@ const latestPost = allPosts
   })[0];
 
 const latestPostTitle = latestPost ? latestPost.data.title : "OFFLINE_NO_DATA";
-const latestPostUrl = latestPost ? `/posts/${latestPost.slug}` : "#";
+const latestPostUrl = latestPost ? `/posts/${latestPost.slug}/` : "/posts/";
 
 const title = "ACCIRE | SYSTEM_V0.1";
 ---
@@ -26,7 +26,7 @@ const title = "ACCIRE | SYSTEM_V0.1";
 			<div class="pane-left">
 				<canvas id="fossil-gl"></canvas>
 				<div class="scanner-overlay">
-					<div class="corner top-left">SYSTEM_MONITORING >> ACTIVE</div>
+					<div class="corner top-left">MONITORING >> ACTIVE</div>
 					<div class="corner bottom-right">ACCIRE_OS >> V0.1</div>
 				</div>
 				<div class="logo-layer">
@@ -64,7 +64,6 @@ const title = "ACCIRE | SYSTEM_V0.1";
 </PageLayout>
 
 <script>
-    // WebGL 逻辑部分完全保留，包含你要求的 5-7s 闪烁与双倍错位
 	const canvas = document.getElementById('fossil-gl') as HTMLCanvasElement;
 	const gl = canvas.getContext('webgl', { antialias: true })!;
 
@@ -83,12 +82,10 @@ const title = "ACCIRE | SYSTEM_V0.1";
 			mat4 m = rY(ang);
 			vec3 pos = p;
 			if(t < 0.5) pos.x += 0.45; else pos.y = 0.0;
-			
 			if(uG > 0.5) {
 				float seg = floor(y * 30.0);
-				pos.x += (rand(vec2(time * 10.0, seg)) - 0.5) * 1.4; // 错位翻倍
+				pos.x += (rand(vec2(time * 10.0, seg)) - 0.5) * 1.4;
 			}
-
 			vec4 rp = m * vec4(pos.x, y, pos.z, 1.0);
 			float z = 5.8 + rp.z;
 			gl_Position = vec4(rp.x/(z*(res.x/res.y)), rp.y/z, rp.z/10.0, 1.0);
@@ -169,8 +166,8 @@ const title = "ACCIRE | SYSTEM_V0.1";
 		
 		if (t > nextGlitchTime && !isGlitching) {
 			isGlitching = true;
-			glitchEndTime = t + 100; // 0.1s 持续
-			nextGlitchTime = t + 5000 + Math.random() * 2000; // 5-7s 间隔
+			glitchEndTime = t + 100;
+			nextGlitchTime = t + 5000 + Math.random() * 2000;
 		}
 		if (isGlitching && t > glitchEndTime) isGlitching = false;
 
@@ -203,7 +200,6 @@ const title = "ACCIRE | SYSTEM_V0.1";
 	* { box-sizing: border-box; user-select: none; margin: 0; padding: 0; }
 	html, body { background: #000; overflow: hidden; height: 100vh; font-family: 'Share Tech Mono', monospace; color: #fff; }
 	
-    /* 鼠标样式 */
 	html, body { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2300FFC3' stroke-width='2'%3E%3Cpath d='M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z'/%3E%3C/svg%3E"), auto !important; }
 	a, .enter-btn { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2300FFC3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v5'/%3E%3Cpath d='M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v10'/%3E%3Cpath d='M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8'/%3E%3Cpath d='M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15'/%3E%3C/svg%3E"), pointer !important; }
 
@@ -214,47 +210,8 @@ const title = "ACCIRE | SYSTEM_V0.1";
 	#fossil-gl { width: 100%; height: 100%; display: block; }
 	
 	.logo-layer { position: absolute; top: 1.8rem; left: 1.8rem; pointer-events: none; z-index: 5; }
-	/* 1. 主标：默认状态 */
-.tag {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 1.5rem;
-    letter-spacing: 0.6em;
-    font-weight: 800;
-    color: #fff;
-    white-space: nowrap;  /* 禁止换行 */
-    overflow: hidden;     /* 溢出隐藏 */
-    display: inline-block;
-}
-
-/* 2. 副标：默认状态 */
-.sub {
-    font-family: 'Share Tech Mono', monospace;
-    color: #00FFC3;
-    font-size: 0.8rem;
-    letter-spacing: 0.2em;
-    margin-top: 0.3rem;
-    white-space: nowrap;  /* 禁止换行 */
-    overflow: hidden;     /* 溢出隐藏 */
-    display: block;
-}
-
-/* --- 手机端适配：通过限制宽度实现字符裁剪 --- */
-@media (max-width: 768px) {
-    /* 宽度只够显示第一个字母 'A' */
-    .tag {
-        width: 1.2rem; 
-    }
-    
-    /* 宽度只够显示 'CORE' */
-    .sub {
-        width: 3.2rem;
-    }
-
-    /* 手机端让 DNA 容器稍微往右靠一点，给单字母留出呼吸空间 */
-    .pane-left {
-        padding-left: 10px;
-    }
-}
+	.tag { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; letter-spacing: 0.6em; font-weight: 800; color: #fff; display: inline-block; white-space: nowrap; overflow: hidden; }
+	.sub { color: #00FFC3; font-size: 0.8rem; letter-spacing: 0.2em; margin-top: 0.3rem; display: block; white-space: nowrap; overflow: hidden; }
 	
 	.pane-right { flex: 1.0; padding: 2.5rem; display: flex; flex-direction: column; background: #050a0f; }
 	.data-header { margin-bottom: 2rem; }
@@ -265,7 +222,6 @@ const title = "ACCIRE | SYSTEM_V0.1";
 	.lbl { width: 100px; color: #00C89A; opacity: 0.8; font-weight: bold; }
 	.val { color: #fff; font-weight: bold; text-transform: uppercase; text-decoration: none; }
     
-    /* 链接样式 */
     .news-link { border-bottom: 1px solid rgba(255,255,255,0.3); transition: 0.2s; }
     .news-link:hover { color: #00FFC3; border-bottom: 1px solid #00FFC3; padding-left: 4px; }
 	
@@ -283,4 +239,13 @@ const title = "ACCIRE | SYSTEM_V0.1";
 	@keyframes load { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 	@keyframes blink { 50% { opacity: 0; } }
 	.scanline { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0, 255, 195, 0.03) 50%); background-size: 100% 4px; z-index: 10; }
+
+	@media (max-width: 768px) {
+		.tag { width: 1rem; text-overflow: clip; }
+		.sub { width: 2.5rem !important; text-overflow: clip; }
+		.logo-layer { left: 1rem; top: 1.2rem; }
+		.pane-right { padding: 1.5rem; }
+		.line { font-size: 12px; }
+		.lbl { width: 80px; }
+	}
 </style>
