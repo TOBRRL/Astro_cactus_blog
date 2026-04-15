@@ -10,9 +10,12 @@ const latestPost = allPosts
     const dateB = new Date(b.data.publishDate || b.data.date).getTime();
     return dateB - dateA;
   })[0];
-
 const latestPostTitle = latestPost ? latestPost.data.title : "OFFLINE_NO_DATA";
 const latestPostUrl = latestPost ? `/posts/${latestPost.slug}/` : "/posts/";
+
+// --- 缝合点：仅生成日期变量，使用 / 替代 . ---
+const now = new Date();
+const dateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
 
 const title = "ACCIRE | SYSTEM_V0.1";
 ---
@@ -42,6 +45,7 @@ const title = "ACCIRE | SYSTEM_V0.1";
 				</div>
 				<div class="info-block">
 					<div class="line"><span class="lbl">ID >></span><span class="val">ACCIRE</span></div>
+					<div class="line"><span class="lbl">DATE >></span><span class="val">{dateStr}</span></div>
 					<div class="line">
 						<span class="lbl">NEWS >></span>
 						<a href={latestPostUrl} class="val blink news-link">{latestPostTitle}</a>
@@ -68,15 +72,16 @@ const title = "ACCIRE | SYSTEM_V0.1";
 	const gl = canvas.getContext('webgl', { antialias: true })!;
 
 	const randGL = "float rand(vec2 n){return fract(sin(dot(n,vec2(12.9898,43.1414)))*43758.5453);}";
-
 	const vs = `
 		attribute vec3 p; attribute vec3 n; attribute float t;
-		uniform float time; uniform vec2 res; uniform float off; uniform float yOff; uniform float uG;
-		varying vec3 vN; varying float vZ; varying float vY; varying float vG;
+		uniform float time; uniform vec2 res;
+		uniform float off; uniform float yOff; uniform float uG;
+		varying vec3 vN; varying float vZ; varying float vY;
+		varying float vG;
 		mat4 rY(float a) { return mat4(cos(a),0,-sin(a),0, 0,1,0,0, sin(a),0,cos(a),0, 0,0,0,1); }
 		${randGL}
 		void main() {
-			vG = uG; 
+			vG = uG;
 			float y = (t > 0.5) ? yOff : p.y;
 			float ang = y * 2.5 + time * 1.5 + off;
 			mat4 m = rY(ang);
@@ -89,13 +94,15 @@ const title = "ACCIRE | SYSTEM_V0.1";
 			vec4 rp = m * vec4(pos.x, y, pos.z, 1.0);
 			float z = 5.8 + rp.z;
 			gl_Position = vec4(rp.x/(z*(res.x/res.y)), rp.y/z, rp.z/10.0, 1.0);
-			vN = (m * vec4(n, 0.0)).xyz; vZ = rp.z; vY = y;
+			vN = (m * vec4(n, 0.0)).xyz;
+			vZ = rp.z; vY = y;
 		}
 	`;
 
 	const fs = `
 		precision highp float;
-		varying vec3 vN; varying float vZ; varying float vY; varying float vG;
+		varying vec3 vN; varying float vZ;
+		varying float vY; varying float vG;
 		uniform float time;
 		${randGL}
 		void main() {
@@ -143,14 +150,14 @@ const title = "ACCIRE | SYSTEM_V0.1";
 		return { p:new Float32Array(pos), n:new Float32Array(norm), t:new Float32Array(type), i:new Uint16Array(idx) };
 	}
 
-	const mG = tube(0.08, 14.0, 64, false); 
+	const mG = tube(0.08, 14.0, 64, false);
 	const bG = tube(0.045, 1.0, 16, true); 
 	function buf(d, t) {
-		const b = gl.createBuffer(); gl.bindBuffer(t, b); gl.bufferData(t, d, gl.STATIC_DRAW); return b;
+		const b = gl.createBuffer(); gl.bindBuffer(t, b); gl.bufferData(t, d, gl.STATIC_DRAW);
+		return b;
 	}
 	const mB = { p:buf(mG.p, 34962), n:buf(mG.n, 34962), t:buf(mG.t, 34962), i:buf(mG.i, 34963), c:mG.i.length };
 	const bB = { p:buf(bG.p, 34962), n:buf(bG.n, 34962), t:buf(bG.t, 34962), i:buf(bG.i, 34963), c:bG.i.length };
-
 	const uYOff = gl.getUniformLocation(prg, "yOff"), uT = gl.getUniformLocation(prg, "time"), uR = gl.getUniformLocation(prg, "res"), uO = gl.getUniformLocation(prg, "off"), uG = gl.getUniformLocation(prg, "uG");
 	const laP = gl.getAttribLocation(prg, "p"), laN = gl.getAttribLocation(prg, "n"), laT = gl.getAttribLocation(prg, "t");
 	gl.enableVertexAttribArray(laP); gl.enableVertexAttribArray(laN); gl.enableVertexAttribArray(laT);
@@ -179,7 +186,8 @@ const title = "ACCIRE | SYSTEM_V0.1";
 		gl.bindBuffer(34962, mB.n); gl.vertexAttribPointer(laN, 3, 5126, false, 0, 0);
 		gl.bindBuffer(34962, mB.t); gl.vertexAttribPointer(laT, 1, 5126, false, 0, 0);
 		gl.bindBuffer(34963, mB.i);
-		gl.uniform1f(uYOff, 0.0); gl.uniform1f(uO, 0.0); gl.drawElements(4, mB.c, 5123, 0);
+		gl.uniform1f(uYOff, 0.0); gl.uniform1f(uO, 0.0);
+		gl.drawElements(4, mB.c, 5123, 0);
 		gl.uniform1f(uO, 3.14159); gl.drawElements(4, mB.c, 5123, 0);
 
 		gl.bindBuffer(34962, bB.p); gl.vertexAttribPointer(laP, 3, 5126, false, 0, 0);
@@ -241,17 +249,16 @@ const title = "ACCIRE | SYSTEM_V0.1";
 	.scanline { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0, 255, 195, 0.03) 50%); background-size: 100% 4px; z-index: 10; }
 
 	@media (max-width: 768px) {
-    .tag { 
-        width: 6.8rem; /* 增加宽度，确保 "A" 和部分文字能展示出来 */
-        letter-spacing: -0.13em; /* 缩小字间距，防止溢出 */
-        text-overflow: clip; 
-    }
-    .sub { 
-        width: 2.9rem !important; /* 给副标题稍多一点空间 */
-        letter-spacing: 0.1em;
-        text-overflow: clip; 
-    }
-
+		.tag { 
+			width: 6.8rem;
+			letter-spacing: -0.13em;
+			text-overflow: clip; 
+		}
+		.sub { 
+			width: 2.9rem !important;
+			letter-spacing: 0.1em;
+			text-overflow: clip; 
+		}
 		.logo-layer { left: 1rem; top: 1.2rem; }
 		.pane-right { padding: 1.5rem; }
 		.line { font-size: 12px; }
