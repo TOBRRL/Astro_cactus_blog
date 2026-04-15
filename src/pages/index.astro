@@ -241,8 +241,17 @@ const title = "ACCIRE | SYSTEM_V0.1";
 	.scanline { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0, 255, 195, 0.03) 50%); background-size: 100% 4px; z-index: 10; }
 
 	@media (max-width: 768px) {
-		.tag { width: 1rem; text-overflow: clip; }
-		.sub { width: 2.5rem !important; text-overflow: clip; }
+    .tag { 
+        width: 3.5rem; /* 增加宽度，确保 "A" 和部分文字能展示出来 */
+        letter-spacing: 0.3em; /* 缩小字间距，防止溢出 */
+        text-overflow: clip; 
+    }
+    .sub { 
+        width: 5rem !important; /* 给副标题稍多一点空间 */
+        letter-spacing: 0.1em;
+        text-overflow: clip; 
+    }
+
 		.logo-layer { left: 1rem; top: 1.2rem; }
 		.pane-right { padding: 1.5rem; }
 		.line { font-size: 12px; }
